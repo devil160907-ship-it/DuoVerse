@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DuoVerse - Request to Join</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="room-id" content="{{ room_id }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    
+    <style>
+        .request-container {
+            max-width: 600px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+        
+        .request-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .meeting-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--glow-color), #6EB5FF);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 48px;
+            color: white;
+            box-shadow: 0 20px 40px rgba(77, 163, 255, 0.3);
+        }
+        
+        .meeting-title {
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .meeting-datetime {
+            color: var(--glow-color);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            padding: 10px 20px;
+            background: rgba(77, 163, 255, 0.1);
+            border-radius: 50px;
+            display: inline-block;
+        }
+        
+        .request-btn {
+            background: linear-gradient(135deg, var(--glow-color), #6EB5FF);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(77, 163, 255, 0.3);
+        }
+        
+        .request-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(77, 163, 255, 0.5);
+        }
+        
+        .request-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-container {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .status-pending {
+            background: rgba(255, 204, 0, 0.15);
+            color: #FFD700;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+        }
+        
+        .status-accepted {
+            background: rgba(52, 199, 89, 0.15);
+            color: #34C759;
+            border: 1px solid rgba(52, 199, 89, 0.3);
+        }
+        
+        .status-rejected {
+            background: rgba(255, 69, 58, 0.15);
+            color: #FF453A;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+        }
+        
+        .status-in-meeting {
+            background: rgba(77, 163, 255, 0.15);
+            color: var(--glow-color);
+            border: 1px solid rgba(77, 163, 255, 0.3);
+        }
+        
+        .join-button {
+            background: #34C759;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+        
+        .join-button:hover {
+            background: #2EAF4C;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(52, 199, 89, 0.3);
+        }
+        
+        .return-button {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .return-button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .retry-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .retry-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .requester-id {
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            word-break: break-all;
+        }
+        
+        .spinner-small {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(77, 163, 255, 0.2);
+            border-top-color: var(--glow-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .waiting-message {
+            padding: 20px;
+        }
+        
+        .big-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .request-container {
+                margin: 30px auto;
+                padding: 15px;
+            }
+            
+            .request-card {
+                padding: 30px 20px;
+            }
+            
+            .meeting-title {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" style="position: fixed;"></div>
+    
+    <div class="container">
+        <div class="request-container">
+            <div class="request-card">
+                <!-- Meeting Icon -->
+                <div class="meeting-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                
+                <!-- Meeting Info -->
+                <h1 class="meeting-title">{{ meeting.title }}</h1>
+                
+                {% if meeting.description %}
+                <p style="color: rgba(255,255,255,0.8); margin-bottom: 15px; font-size: 1.1rem;">
+                    "{{ meeting.description }}"
+                </p>
+                {% endif %}
+                
+                <div class="meeting-datetime">
+                    <i class="far fa-calendar-alt" style="margin-right: 5px;"></i> {{ meeting.date }} 
+                    <i class="far fa-clock" style="margin-left: 10px; margin-right: 5px;"></i> {{ meeting.time }}
+                </div>
+                
+                <!-- Status Container -->
+                <div id="status-container" class="status-container">
+                    <!-- Initial View -->
+                    <div id="initial-view" style="display: none;">
+                        <p style="color: rgba(255,255,255,0.8); margin-bottom: 25px; font-size: 1.1rem;">
+                            You've been invited to join this DuoVerse meeting. Send a request to the host.
+                        </p>
+                        
+                        <button id="request-join-btn" class="request-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            Request to Join
+                        </button>
+                    </div>
+                    
+                    <!-- Pending View -->
+                    <div id="pending-view" style="display: none;">
+                        <div class="status-badge status-pending">
+                            <span class="spinner-small"></span>
+                            Request Pending
+                        </div>
+                        <h3 style="color: white; margin-bottom: 10px;">Waiting for host's approval</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px;">
+                            Your request has been sent. The host will let you in shortly.
+                        </p>
+                        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                            <button id="check-status-btn" class="retry-btn">
+                                <i class="fas fa-sync-alt" style="margin-right: 5px;"></i> Check Status
+                            </button>
+                            <a href="/" class="return-button">
+                                <i class="fas fa-times" style="margin-right: 5px;"></i> Cancel
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Waiting Room View -->
+                    <div id="waiting-room-view" style="display: none;">
+                        <div class="status-badge status-pending">
+                            <span class="spinner-small"></span>
+                            Waiting for Host
+                        </div>
+                        
+                        <div class="waiting-message">
+                            <div class="big-icon">
+                                <i class="fas fa-hourglass-half" style="color: var(--glow-color);"></i>
+                            </div>
+                            <h3 style="color: white; margin-bottom: 15px;">Waiting for host to start the meeting</h3>
+                            <p style="color: rgba(255,255,255,0.7); margin-bottom: 30px;">
+                                Your request has been sent. The host will let you in shortly...
+                            </p>
+                            <div class="spinner" style="margin: 0 auto 30px;"></div>
+                            
+                            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                                <button id="check-status-from-waiting" class="retry-btn">
+                                    <i class="fas fa-sync-alt" style="margin-right: 5px;"></i> Check Status
+                                </button>
+                                <a href="/" class="return-button">
+                                    <i class="fas fa-sign-out-alt" style="margin-right: 5px;"></i> Leave Waiting Room
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div id="waiting-requester-id" class="requester-id" style="margin-top: 20px; display: none;">
+                            <span>Your Request ID: <span id="waiting-requester-id-value"></span></span>
+                            <button id="copy-id-waiting-btn" style="background: none; border: none; color: var(--glow-color); cursor: pointer; margin-left: 10px;" title="Copy ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Accepted View -->
+                    <div id="accepted-view" style="display: none;">
+                        <div class="status-badge status-accepted">
+                            <i class="fas fa-check-circle"></i> Request Accepted
+                        </div>
+                        <h3 style="color: white; margin-bottom: 15px;">You're ready to join! 🎉</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 25px;">
+                            The host has accepted your request. Click the button below to enter the meeting.
+                        </p>
+                        <a id="join-meeting-btn" href="/meet/{{ room_id }}?host=false&accepted=true" class="join-button">
+                            <i class="fas fa-door-open"></i>
+                            Enter Meeting Room
+                        </a>
+                    </div>
+                    
+                    <!-- Already In Meeting View -->
+                    <div id="in-meeting-view" style="display: none;">
+                        <div class="status-badge status-in-meeting">
+                            <i class="fas fa-video"></i> In Meeting
+                        </div>
+                        <h3 style="color: white; margin-bottom: 15px;">You're already in the meeting</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 25px;">
+                            You have an active meeting session. Click below to return.
+                        </p>
+                        <a href="/meet/{{ room_id }}?host=false&accepted=true" class="join-button" style="background: var(--glow-color);">
+                            <i class="fas fa-redo-alt"></i>
+                            Return to Meeting
+                        </a>
+                    </div>
+                    
+                    <!-- Rejected View -->
+                    <div id="rejected-view" style="display: none;">
+                        <div class="status-badge status-rejected">
+                            <i class="fas fa-times-circle"></i> Request Declined
+                        </div>
+                        <h3 style="color: white; margin-bottom: 15px;">Your request was declined</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 25px;">
+                            The host has declined your request to join this meeting.
+                        </p>
+                        <button id="try-again-btn" class="retry-btn">
+                            <i class="fas fa-redo-alt" style="margin-right: 5px;"></i> Try Again
+                        </button>
+                    </div>
+                    
+                    <!-- Error View -->
+                    <div id="error-view" style="display: none;">
+                        <div class="status-badge status-rejected">
+                            <i class="fas fa-exclamation-triangle"></i> Error
+                        </div>
+                        <h3 style="color: white; margin-bottom: 15px;">Something went wrong</h3>
+                        <p id="error-message" style="color: rgba(255,255,255,0.7); margin-bottom: 25px;">
+                            Unable to send request
+                        </p>
+                        <button id="retry-request-btn" class="retry-btn">
+                            <i class="fas fa-redo-alt" style="margin-right: 5px;"></i> Try Again
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Requester ID -->
+                <div id="requester-id-container" class="requester-id" style="display: none;">
+                    <span>Your Request ID: <span id="requester-id-value"></span></span>
+                    <button id="copy-id-btn" style="background: none; border: none; color: var(--glow-color); cursor: pointer; margin-left: 10px;" title="Copy ID">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Back Link -->
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="/" style="color: rgba(255,255,255,0.6); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s ease;">
+                    <i class="fas fa-home"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script>
+        const roomId = '{{ room_id }}';
+        const meetingId = {{ meeting.id }};
+        
+        let requesterId = localStorage.getItem(`duoverse_requester_${roomId}`);
+        let currentRequestId = null;
+        let statusCheckInterval = null;
+        
+        async function copyToClipboard(text, message = 'Copied!') {
+            try {
+                await navigator.clipboard.writeText(text);
+                if (typeof alertSystem !== 'undefined') {
+                    alertSystem.show('Copied!', message, 'success');
+                }
+                return true;
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                return false;
+            }
+        }
+        
+        function showView(viewName) {
+            document.getElementById('initial-view').style.display = 'none';
+            document.getElementById('pending-view').style.display = 'none';
+            document.getElementById('waiting-room-view').style.display = 'none';
+            document.getElementById('accepted-view').style.display = 'none';
+            document.getElementById('in-meeting-view').style.display = 'none';
+            document.getElementById('rejected-view').style.display = 'none';
+            document.getElementById('error-view').style.display = 'none';
+            
+            document.getElementById(`${viewName}-view`).style.display = 'block';
+        }
+        
+        function checkIfInMeeting() {
+            const meetingSession = sessionStorage.getItem(`duoverse_meeting_${roomId}`);
+            return meetingSession === 'active';
+        }
+        
+        async function sendJoinRequest() {
+            try {
+                showView('pending');
+                
+                const response = await fetch(`/api/join-request/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    requesterId = data.requester_id;
+                    currentRequestId = data.request_id;
+                    
+                    localStorage.setItem(`duoverse_requester_${roomId}`, requesterId);
+                    
+                    document.getElementById('requester-id-container').style.display = 'block';
+                    document.getElementById('requester-id-value').textContent = requesterId;
+                    
+                    document.getElementById('waiting-requester-id').style.display = 'block';
+                    document.getElementById('waiting-requester-id-value').textContent = requesterId;
+                    
+                    startStatusCheck();
+                } else {
+                    showView('error');
+                    document.getElementById('error-message').textContent = data.error || 'Failed to send request';
+                }
+            } catch (error) {
+                console.error('Request error:', error);
+                showView('error');
+                document.getElementById('error-message').textContent = 'Network error. Please try again.';
+            }
+        }
+        
+        async function checkRequestStatus() {
+            if (!requesterId) return;
+            
+            try {
+                const response = await fetch(`/api/join-request-status/${roomId}?requester_id=${encodeURIComponent(requesterId)}`);
+                const data = await response.json();
+                
+                if (data.status === 'accepted') {
+                    if (checkIfInMeeting()) {
+                        showView('in-meeting');
+                    } else {
+                        showView('accepted');
+                    }
+                    
+                    stopStatusCheck();
+                } else if (data.status === 'rejected') {
+                    showView('rejected');
+                    stopStatusCheck();
+                } else if (data.status === 'pending') {
+                    if (document.getElementById('pending-view').style.display === 'block' || 
+                        document.getElementById('waiting-room-view').style.display === 'block') {
+                        // Keep current view
+                    } else {
+                        showView('waiting-room');
+                    }
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+        
+        function startStatusCheck() {
+            stopStatusCheck();
+            statusCheckInterval = setInterval(checkRequestStatus, 3000);
+        }
+        
+        function stopStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+        }
+        
+        async function clearRejectedRequest() {
+            if (!requesterId) return;
+            
+            try {
+                await fetch(`/api/clear-rejected-request/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ requester_id: requesterId })
+                });
+            } catch (error) {
+                console.error('Failed to clear rejected request:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const inMeeting = checkIfInMeeting();
+            
+            if (requesterId) {
+                fetch(`/api/join-request-status/${roomId}?requester_id=${encodeURIComponent(requesterId)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'pending') {
+                            showView('waiting-room');
+                            document.getElementById('requester-id-container').style.display = 'block';
+                            document.getElementById('requester-id-value').textContent = requesterId;
+                            document.getElementById('waiting-requester-id').style.display = 'block';
+                            document.getElementById('waiting-requester-id-value').textContent = requesterId;
+                            startStatusCheck();
+                        } else if (data.status === 'accepted') {
+                            if (inMeeting) {
+                                showView('in-meeting');
+                            } else {
+                                showView('accepted');
+                            }
+                        } else if (data.status === 'rejected') {
+                            showView('rejected');
+                        } else {
+                            localStorage.removeItem(`duoverse_requester_${roomId}`);
+                            requesterId = null;
+                            showView('initial');
+                        }
+                    })
+                    .catch(() => {
+                        showView('initial');
+                    });
+            } else {
+                showView('initial');
+            }
+            
+            const requestBtn = document.getElementById('request-join-btn');
+            if (requestBtn) {
+                requestBtn.addEventListener('click', sendJoinRequest);
+            }
+            
+            const checkStatusBtn = document.getElementById('check-status-btn');
+            if (checkStatusBtn) {
+                checkStatusBtn.addEventListener('click', checkRequestStatus);
+            }
+            
+            const checkStatusWaitingBtn = document.getElementById('check-status-from-waiting');
+            if (checkStatusWaitingBtn) {
+                checkStatusWaitingBtn.addEventListener('click', checkRequestStatus);
+            }
+            
+            const tryAgainBtn = document.getElementById('try-again-btn');
+            if (tryAgainBtn) {
+                tryAgainBtn.addEventListener('click', async function() {
+                    await clearRejectedRequest();
+                    localStorage.removeItem(`duoverse_requester_${roomId}`);
+                    requesterId = null;
+                    showView('initial');
+                });
+            }
+            
+            const retryBtn = document.getElementById('retry-request-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    showView('initial');
+                });
+            }
+            
+            const copyIdBtn = document.getElementById('copy-id-btn');
+            if (copyIdBtn) {
+                copyIdBtn.addEventListener('click', function() {
+                    if (requesterId) {
+                        copyToClipboard(requesterId, 'Request ID copied');
+                    }
+                });
+            }
+            
+            const copyIdWaitingBtn = document.getElementById('copy-id-waiting-btn');
+            if (copyIdWaitingBtn) {
+                copyIdWaitingBtn.addEventListener('click', function() {
+                    if (requesterId) {
+                        copyToClipboard(requesterId, 'Request ID copied');
+                    }
+                });
+            }
+        });
+        
+        window.addEventListener('beforeunload', function() {
+            stopStatusCheck();
+        });
+    </script>
+</body>
+</html>

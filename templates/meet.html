@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DuoVerse - {{ meeting.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="room-id" content="{{ room_id }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+</head>
+<body>
+    <div class="stars" style="position: fixed;"></div>
+    
+    <div class="container">
+        {% if not is_started %}
+        <!-- ========== LOCKED SCREEN (Before Start Time) ========== -->
+        <div class="glass-panel" style="max-width: 600px; margin: 100px auto; text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">
+                <i class="fas fa-lock" style="color: var(--glow-color);"></i>
+            </div>
+            <h1 style="color: var(--glow-color); margin-bottom: 20px;">Meeting Not Started</h1>
+            <p style="margin-bottom: 10px; color: rgba(255,255,255,0.9);">This meeting is locked until:</p>
+            <h2 style="font-size: 2rem; margin-bottom: 20px; color: white;">{{ meeting.date }} at {{ meeting.time }}</h2>
+            
+            <div class="countdown" style="background: rgba(77, 163, 255, 0.1); border-radius: 15px; padding: 30px;">
+                <p style="color: rgba(255,255,255,0.8); margin-bottom: 10px;">Time remaining until meeting starts:</p>
+                <div id="countdown-timer" class="countdown-number" style="font-size: 2.5rem;">Loading...</div>
+            </div>
+            
+            <button onclick="window.location.href='/'" class="control-btn" style="margin-top: 30px;">
+                <i class="fas fa-arrow-left" style="margin-right: 8px;"></i> Return Home
+            </button>
+        </div>
+        
+        {% elif not meeting.is_active %}
+        <!-- ========== MEETING ENDED ========== -->
+        <div class="glass-panel" style="max-width: 600px; margin: 100px auto; text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">
+                <i class="fas fa-hand-wave" style="color: var(--glow-color);"></i>
+            </div>
+            <h1 style="color: var(--glow-color); margin-bottom: 20px;">Meeting Ended</h1>
+            <p style="margin-bottom: 30px; color: rgba(255,255,255,0.9);">This meeting has been closed by the host.</p>
+            <button onclick="window.location.href='/'" class="glow-button">
+                <i class="fas fa-home" style="margin-right: 8px;"></i> Return Home
+            </button>
+        </div>
+        
+        {% else %}
+        <!-- ========== MEETING ACTIVE ========== -->
+        
+        {% if is_host %}
+        <!-- ========== HOST VIEW ========== -->
+        <div id="host-container">
+            <!-- Host Waiting Room -->
+            <div id="host-waiting-room" style="display: block;">
+                <div class="glass-panel" style="max-width: 700px; margin: 50px auto;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <span style="background: var(--glow-color); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                            <i class="fas fa-crown" style="margin-right: 5px;"></i> HOST
+                        </span>
+                        <h1 style="color: white; margin-top: 20px; margin-bottom: 10px;">{{ meeting.title }}</h1>
+                        <p style="color: rgba(255,255,255,0.8);">
+                            <i class="far fa-calendar-alt" style="margin-right: 5px;"></i> {{ meeting.date }} 
+                            <i class="far fa-clock" style="margin-left: 10px; margin-right: 5px;"></i> {{ meeting.time }}
+                        </p>
+                        {% if meeting.description %}
+                        <p style="color: rgba(255,255,255,0.7); margin-top: 10px; font-style: italic;">"{{ meeting.description }}"</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="text-align: center; padding: 30px;">
+                        <div style="font-size: 64px; margin-bottom: 20px;">
+                            <i class="fas fa-hourglass-half" style="color: var(--glow-color);"></i>
+                        </div>
+                        <h3 style="color: white; margin-bottom: 15px;">Waiting for participants...</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 30px;">
+                            Your meeting is ready. When your partner requests to join, you can approve them from the Join Requests page.
+                        </p>
+                        
+                        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                            <a href="/join-requests/{{ room_id }}?host=true" class="glow-button" style="padding: 14px 28px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-envelope"></i>
+                                <span>Manage Join Requests</span>
+                            </a>
+                            <button id="copy-host-link" class="control-btn" onclick="copyHostLink()" style="background: rgba(255,255,255,0.1);">
+                                <i class="fas fa-link"></i>
+                                <span>Copy Host Link</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Active Meeting Room (Host) -->
+            <div id="host-meeting-room" style="display: none;">
+                <div class="video-container">
+                    <div class="video-wrapper" id="local-video-wrapper">
+                        <div class="video-label">
+                            <i class="fas fa-user" style="margin-right: 5px;"></i> You (Host)
+                        </div>
+                        <video id="localVideo" autoplay playsinline muted></video>
+                    </div>
+                    <div class="video-wrapper" id="remote-video-wrapper">
+                        <div class="video-label">
+                            <i class="fas fa-user-friends" style="margin-right: 5px;"></i> Partner
+                        </div>
+                        <video id="remoteVideo" autoplay playsinline></video>
+                    </div>
+                </div>
+                
+                <!-- YouTube Watch Together Section -->
+                <div class="youtube-section" style="margin-top: 20px; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 15px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h3 style="color: var(--glow-color); display: flex; align-items: center; gap: 10px;">
+                            <i class="fab fa-youtube"></i> Watch Together
+                        </h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="toggle-youtube-btn" class="control-btn" style="padding: 8px 16px;">
+                                <i class="fas fa-tv"></i>
+                                <span class="text">Show Player</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="youtube-player-container" style="display: none; transition: all 0.3s ease;">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div style="flex: 2; min-width: 300px;">
+                                <div id="youtube-player" style="width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: black;"></div>
+                                
+                                <div id="youtube-controls" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                                    <button id="youtube-play-pause" class="control-btn" style="padding: 8px 16px;">
+                                        <i class="fas fa-play"></i>
+                                        <span class="text">Play</span>
+                                    </button>
+                                    <button id="youtube-stop" class="control-btn" style="padding: 8px 16px;">
+                                        <i class="fas fa-stop"></i>
+                                        <span class="text">Stop</span>
+                                    </button>
+                                    <div style="display: flex; align-items: center; gap: 5px; flex: 1;">
+                                        <i class="fas fa-volume-up" style="color: white;"></i>
+                                        <input type="range" id="youtube-volume" min="0" max="100" value="100" style="flex: 1; height: 5px; -webkit-appearance: none; background: rgba(255,255,255,0.2); border-radius: 5px; accent-color: var(--glow-color);">
+                                    </div>
+                                    <span id="youtube-time" style="color: white; font-size: 0.9rem;">0:00 / 0:00</span>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px;">
+                                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                    <input type="text" id="youtube-search-input" class="glass-input" 
+                                           placeholder="Search YouTube..." style="flex: 1;">
+                                    <button id="youtube-search-btn" class="control-btn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                
+                                <div id="youtube-search-results" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; display: none;">
+                                    <h4 style="color: white; margin-bottom: 10px;">Search Results</h4>
+                                    <div id="search-results-list"></div>
+                                </div>
+                                
+                                <div>
+                                    <h4 style="color: white; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fas fa-list"></i> Playlist
+                                    </h4>
+                                    <div id="youtube-playlist" style="max-height: 200px; overflow-y: auto;">
+                                        <p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">
+                                            No videos in playlist
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="meeting-controls">
+                    <button id="toggle-mic" class="control-btn">
+                        <i class="fas fa-microphone"></i>
+                        <span class="text">Mute</span>
+                    </button>
+                    <button id="toggle-camera" class="control-btn">
+                        <i class="fas fa-video"></i>
+                        <span class="text">Switch</span>
+                    </button>
+                    <button onclick="window.location.href='/chat/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-comment"></i>
+                        <span class="text">Chat</span>
+                    </button>
+                    <button onclick="window.location.href='/capture/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-camera"></i>
+                        <span class="text">Photo</span>
+                    </button>
+                    <button onclick="window.location.href='/gallery/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-images"></i>
+                        <span class="text">Gallery</span>
+                    </button>
+                    <button id="end-meeting-btn" class="control-btn danger">
+                        <i class="fas fa-door-open"></i>
+                        <span class="text">End</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- ========== PARTICIPANT VIEW ========== -->
+        <div id="participant-container">
+            <div id="participant-meeting-room" style="display: none;">
+                <div class="video-container">
+                    <div class="video-wrapper" id="local-video-wrapper">
+                        <div class="video-label">
+                            <i class="fas fa-user" style="margin-right: 5px;"></i> You
+                        </div>
+                        <video id="localVideo" autoplay playsinline muted></video>
+                    </div>
+                    <div class="video-wrapper" id="remote-video-wrapper">
+                        <div class="video-label">
+                            <i class="fas fa-crown" style="margin-right: 5px;"></i> Host
+                        </div>
+                        <video id="remoteVideo" autoplay playsinline></video>
+                    </div>
+                </div>
+                
+                <!-- YouTube Watch Together Section (Participant) -->
+                <div class="youtube-section" style="margin-top: 20px; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 15px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h3 style="color: var(--glow-color); display: flex; align-items: center; gap: 10px;">
+                            <i class="fab fa-youtube"></i> Watch Together
+                        </h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="toggle-youtube-btn" class="control-btn" style="padding: 8px 16px;">
+                                <i class="fas fa-tv"></i>
+                                <span class="text">Show Player</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="youtube-player-container" style="display: none; transition: all 0.3s ease;">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div style="flex: 2; min-width: 300px;">
+                                <div id="youtube-player" style="width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: black;"></div>
+                                
+                                <div id="youtube-controls" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                                    <button id="youtube-play-pause" class="control-btn" style="padding: 8px 16px;" disabled>
+                                        <i class="fas fa-play"></i>
+                                        <span class="text">Play</span>
+                                    </button>
+                                    <button id="youtube-stop" class="control-btn" style="padding: 8px 16px;" disabled>
+                                        <i class="fas fa-stop"></i>
+                                        <span class="text">Stop</span>
+                                    </button>
+                                    <div style="display: flex; align-items: center; gap: 5px; flex: 1;">
+                                        <i class="fas fa-volume-up" style="color: white;"></i>
+                                        <input type="range" id="youtube-volume" min="0" max="100" value="100" style="flex: 1; height: 5px; -webkit-appearance: none; background: rgba(255,255,255,0.2); border-radius: 5px; accent-color: var(--glow-color);">
+                                    </div>
+                                    <span id="youtube-time" style="color: white; font-size: 0.9rem;">0:00 / 0:00</span>
+                                </div>
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-top: 5px; text-align: center;">
+                                    <i class="fas fa-bolt" style="margin-right: 5px;"></i> Host controls playback
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="meeting-controls">
+                    <button id="toggle-mic" class="control-btn">
+                        <i class="fas fa-microphone"></i>
+                        <span class="text">Mute</span>
+                    </button>
+                    <button id="toggle-camera" class="control-btn">
+                        <i class="fas fa-video"></i>
+                        <span class="text">Switch</span>
+                    </button>
+                    <button onclick="window.location.href='/chat/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-comment"></i>
+                        <span class="text">Chat</span>
+                    </button>
+                    <button onclick="window.location.href='/capture/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-camera"></i>
+                        <span class="text">Photo</span>
+                    </button>
+                    <button onclick="window.location.href='/gallery/{{ room_id }}'" class="control-btn">
+                        <i class="fas fa-images"></i>
+                        <span class="text">Gallery</span>
+                    </button>
+                    <button id="leave-meeting-btn" class="control-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="text">Leave</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="participant-not-accepted" style="display: none;" class="glass-panel" style="max-width: 600px; margin: 80px auto; text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 20px;">
+                    <i class="fas fa-lock" style="color: var(--glow-color);"></i>
+                </div>
+                <h3 style="color: white; margin-bottom: 15px;">Access Denied</h3>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 30px;">
+                    You haven't been accepted to this meeting yet.
+                </p>
+                <a href="/join-request/{{ room_id }}" class="glow-button">
+                    <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Go to Join Request Page
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+    
+    <!-- YouTube API Scripts -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/video.js') }}"></script>
+    <script>
+        const roomId = '{{ room_id }}';
+        const isHost = {{ 'true' if is_host else 'false' }};
+        const isStarted = {{ 'true' if is_started else 'false' }};
+        const meetingId = {{ meeting.id }};
+        const youtubeApiKey = '{{ youtube_api_key }}';
+        
+        {% if not is_started %}
+        function updateCountdown() {
+            const startTime = new Date('{{ meeting.date }}T{{ meeting.time }}').getTime();
+            const now = new Date().getTime();
+            const distance = startTime - now;
+            
+            if (distance < 0) {
+                location.reload();
+                return;
+            }
+            
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            const timer = document.getElementById('countdown-timer');
+            if (timer) {
+                timer.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+        {% endif %}
+        
+        {% if is_host and is_started and meeting.is_active %}
+        function copyHostLink() {
+            const hostLink = window.location.href;
+            navigator.clipboard.writeText(hostLink).then(() => {
+                if (typeof alertSystem !== 'undefined') {
+                    alertSystem.show('Copied!', 'Host link copied to clipboard', 'success');
+                }
+            });
+        }
+        
+        document.getElementById('end-meeting-btn')?.addEventListener('click', function() {
+            if (typeof alertSystem !== 'undefined') {
+                alertSystem.confirm(
+                    'End Meeting',
+                    'Are you sure you want to end this meeting for everyone?',
+                    async () => {
+                        try {
+                            const response = await fetch(`/api/end-meeting/${roomId}`, {
+                                method: 'POST'
+                            });
+                            if (response.ok) {
+                                window.location.href = '/';
+                            }
+                        } catch (error) {
+                            alertSystem.show('Error', 'Failed to end meeting', 'error');
+                        }
+                    }
+                );
+            }
+        });
+        
+        function checkAutoStartMeeting() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('start') === 'true' || urlParams.get('participant') === 'connected' || urlParams.get('accepted') === 'true') {
+                console.log('Auto-starting meeting room - participant accepted');
+                
+                const waitingRoom = document.getElementById('host-waiting-room');
+                const meetingRoom = document.getElementById('host-meeting-room');
+                
+                if (waitingRoom && meetingRoom) {
+                    waitingRoom.style.display = 'none';
+                    meetingRoom.style.display = 'block';
+                    
+                    sessionStorage.setItem(`duoverse_meeting_${roomId}`, 'active');
+                    
+                    if (typeof initWebRTC === 'function') {
+                        initWebRTC(true);
+                    }
+                    
+                    setTimeout(() => {
+                        if (typeof window.youtubeTogether === 'undefined' && youtubeApiKey) {
+                            window.youtubeTogether = new YouTubeTogether(roomId, youtubeApiKey);
+                        }
+                    }, 1000);
+                    
+                    if (typeof alertSystem !== 'undefined') {
+                        alertSystem.show('🎉 Participant Joined!', 'Your partner has joined the meeting.', 'success');
+                    }
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAutoStartMeeting();
+        });
+        
+        checkAutoStartMeeting();
+        
+        {% endif %}
+        
+        {% if not is_host and is_started and meeting.is_active %}
+        function checkParticipantAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const meetingRoom = document.getElementById('participant-meeting-room');
+            const notAccepted = document.getElementById('participant-not-accepted');
+            
+            if (urlParams.get('accepted') === 'true') {
+                if (meetingRoom) {
+                    meetingRoom.style.display = 'block';
+                    if (notAccepted) notAccepted.style.display = 'none';
+                    
+                    sessionStorage.setItem(`duoverse_meeting_${roomId}`, 'active');
+                    
+                    if (typeof initWebRTC === 'function' && !window.webrtcInitialized) {
+                        initWebRTC(false);
+                        window.webrtcInitialized = true;
+                    }
+                    
+                    setTimeout(() => {
+                        if (typeof window.youtubeTogether === 'undefined' && youtubeApiKey) {
+                            window.youtubeTogether = new YouTubeTogether(roomId, youtubeApiKey);
+                        }
+                    }, 1000);
+                }
+            } else {
+                const activeSession = sessionStorage.getItem(`duoverse_meeting_${roomId}`);
+                if (activeSession === 'active') {
+                    if (meetingRoom) {
+                        meetingRoom.style.display = 'block';
+                        if (notAccepted) notAccepted.style.display = 'none';
+                        
+                        if (typeof initWebRTC === 'function' && !window.webrtcInitialized) {
+                            initWebRTC(false);
+                            window.webrtcInitialized = true;
+                        }
+                        
+                        setTimeout(() => {
+                            if (typeof window.youtubeTogether === 'undefined' && youtubeApiKey) {
+                                window.youtubeTogether = new YouTubeTogether(roomId, youtubeApiKey);
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    if (meetingRoom) meetingRoom.style.display = 'none';
+                    if (notAccepted) notAccepted.style.display = 'block';
+                }
+            }
+        }
+        
+        function leaveMeeting() {
+            if (typeof alertSystem !== 'undefined') {
+                alertSystem.confirm(
+                    'Leave Meeting',
+                    'Are you sure you want to leave this meeting?',
+                    () => {
+                        sessionStorage.removeItem(`duoverse_meeting_${roomId}`);
+                        window.location.href = '/';
+                    }
+                );
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const leaveBtn = document.getElementById('leave-meeting-btn');
+            if (leaveBtn) {
+                leaveBtn.addEventListener('click', leaveMeeting);
+            }
+            
+            checkParticipantAccess();
+        });
+        
+        {% endif %}
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggle-youtube-btn');
+            const youtubeContainer = document.getElementById('youtube-player-container');
+            
+            if (toggleBtn && youtubeContainer) {
+                toggleBtn.addEventListener('click', function() {
+                    if (youtubeContainer.style.display === 'none' || !youtubeContainer.style.display) {
+                        youtubeContainer.style.display = 'block';
+                        toggleBtn.innerHTML = '<i class="fas fa-tv"></i><span class="text">Hide Player</span>';
+                        
+                        const meetingRoom = document.getElementById('participant-meeting-room');
+                        const hostMeetingRoom = document.getElementById('host-meeting-room');
+                        
+                        if ((meetingRoom && meetingRoom.style.display === 'block') || 
+                            (hostMeetingRoom && hostMeetingRoom.style.display === 'block')) {
+                            if (typeof window.youtubeTogether === 'undefined' && youtubeApiKey) {
+                                window.youtubeTogether = new YouTubeTogether(roomId, youtubeApiKey);
+                            }
+                        }
+                    } else {
+                        youtubeContainer.style.display = 'none';
+                        toggleBtn.innerHTML = '<i class="fas fa-tv"></i><span class="text">Show Player</span>';
+                    }
+                });
+            }
+            
+            {% if not is_host %}
+            const playPauseBtn = document.getElementById('youtube-play-pause');
+            const stopBtn = document.getElementById('youtube-stop');
+            const searchBtn = document.getElementById('youtube-search-btn');
+            const searchInput = document.getElementById('youtube-search-input');
+            
+            if (playPauseBtn) playPauseBtn.disabled = true;
+            if (stopBtn) stopBtn.disabled = true;
+            if (searchBtn) searchBtn.style.display = 'none';
+            if (searchInput) searchInput.style.display = 'none';
+            {% endif %}
+        });
+    </script>
+    
+    <style>
+        .fade-out {
+            animation: fadeOut 0.3s ease;
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .video-wrapper {
+            position: relative;
+        }
+        
+        .video-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(77, 163, 255, 0.2);
+            border-top-color: var(--glow-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .control-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .playlist-item {
+            transition: all 0.3s ease;
+        }
+        
+        .playlist-item:hover {
+            background: rgba(77, 163, 255, 0.2) !important;
+            transform: translateX(5px);
+        }
+        
+        #youtube-volume {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        #youtube-volume::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--glow-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+        
+        .glow-button {
+            background: linear-gradient(135deg, var(--glow-color), #6EB5FF);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .glow-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(77, 163, 255, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .control-btn .text {
+                display: none;
+            }
+            
+            .control-btn {
+                padding: 12px;
+            }
+            
+            .youtube-section {
+                padding: 10px;
+            }
+            
+            .glass-panel {
+                margin: 20px !important;
+                padding: 20px !important;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoVerse - Setup Meeting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="msapplication-TileColor" content="#0B1221">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+    <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#4DA3FF">
+    
+    <style>
+        .setup-container {
+            max-width: 600px;
+            margin: 50px auto;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--glow-color);
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        
+        .glass-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-input:focus {
+            outline: none;
+            border-color: var(--glow-color);
+            box-shadow: 0 0 20px rgba(77, 163, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .glass-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        textarea.glass-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .glow-button {
+            background: linear-gradient(45deg, var(--glow-color), #6EB5FF);
+            border: none;
+            border-radius: 15px;
+            padding: 16px 30px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(77, 163, 255, 0.3);
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .glow-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(77, 163, 255, 0.6);
+        }
+        
+        .glow-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--glow-color);
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: rgba(77, 163, 255, 0.1);
+            border-left: 4px solid var(--glow-color);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .info-box p {
+            margin: 5px 0;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .info-box .password-note {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--glow-color);
+            font-weight: bold;
+        }
+        
+        .back-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-5px);
+        }
+        
+        @media (max-width: 768px) {
+            .setup-container {
+                margin: 20px auto;
+                padding: 0 15px;
+            }
+            
+            .glass-input {
+                padding: 12px;
+            }
+            
+            .glow-button {
+                padding: 14px 20px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <div class="container">
+        <div class="setup-container">
+            <!-- Back Button -->
+            <button onclick="window.location.href='/'" class="back-button">
+                <span>←</span> Back to Home
+            </button>
+            
+            <div class="glass-panel">
+                <h1 style="color: var(--glow-color); text-align: center; margin-bottom: 30px; font-size: 2.2rem;">
+                    ✨ Schedule Your Meeting
+                </h1>
+                
+                <!-- Info Box about hardcoded password -->
+                <div class="info-box">
+                    <p style="font-weight: bold; color: var(--glow-color);">🔐 Gallery Information</p>
+                    <p>The gallery password is permanently set to:</p>
+                    <p class="password-note">16092008</p>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">This password will be used for all meetings to access the photo gallery.</p>
+                </div>
+                
+                <form id="meeting-form">
+                    <div class="input-group">
+                        <label for="title">📝 Meeting Title</label>
+                        <input type="text" id="title" class="glass-input" 
+                               placeholder="e.g., Our Coffee Date" 
+                               required
+                               maxlength="100"
+                               autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="description">💭 Description (Optional)</label>
+                        <textarea id="description" class="glass-input" 
+                                  placeholder="What's this meeting about? Share some details with your partner..." 
+                                  rows="4"
+                                  maxlength="500"></textarea>
+                        <div style="text-align: right; margin-top: 5px; color: rgba(255,255,255,0.5); font-size: 0.8rem;">
+                            <span id="char-count">0</span>/500
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="date">📅 Date</label>
+                        <input type="date" id="date" class="glass-input" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="time">⏰ Time</label>
+                        <input type="time" id="time" class="glass-input" required>
+                    </div>
+                    
+                    <!-- Password field removed - using hardcoded 16092008 -->
+                    
+                    <button type="submit" class="glow-button" id="submit-btn">
+                        Create Meeting Space
+                    </button>
+                </form>
+                
+                <div id="loading" style="display: none; text-align: center; margin-top: 30px;">
+                    <div class="loading-spinner"></div>
+                    <p style="color: var(--glow-color); margin-top: 15px; font-size: 1.1rem;">
+                        Creating your magical space...
+                    </p>
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+                        Please wait while we set everything up
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Tips Section -->
+            <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div class="glass-panel" style="padding: 20px; text-align: center;">
+                    <span style="font-size: 2rem;">🎯</span>
+                    <h3 style="color: var(--glow-color); margin: 10px 0;">Choose a Title</h3>
+                    <p style="color: rgba(255,255,255,0.7);">Make it special and memorable for both of you</p>
+                </div>
+                
+                <div class="glass-panel" style="padding: 20px; text-align: center;">
+                    <span style="font-size: 2rem;">⏰</span>
+                    <h3 style="color: var(--glow-color); margin: 10px 0;">Pick the Time</h3>
+                    <p style="color: rgba(255,255,255,0.7);">The meeting will only be active at your scheduled time</p>
+                </div>
+                
+                <div class="glass-panel" style="padding: 20px; text-align: center;">
+                    <span style="font-size: 2rem;">🔐</span>
+                    <h3 style="color: var(--glow-color); margin: 10px 0;">Gallery Password</h3>
+                    <p style="color: rgba(255,255,255,0.7);">Use <strong>16092008</strong> to access your photo gallery</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script>
+        // Character counter for description
+        const descriptionInput = document.getElementById('description');
+        const charCount = document.getElementById('char-count');
+        
+        descriptionInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            
+            // Change color when approaching limit
+            if (count > 450) {
+                charCount.style.color = '#ff6b6b';
+            } else if (count > 400) {
+                charCount.style.color = '#ffd93d';
+            } else {
+                charCount.style.color = 'rgba(255,255,255,0.5)';
+            }
+        });
+        
+        // Set minimum date to today
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
+        document.getElementById('date').min = todayStr;
+        document.getElementById('date').value = todayStr;
+        
+        // Set default time to next hour
+        const now = new Date();
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('time').value = `${hours}:${minutes}`;
+        
+        // Form validation
+        function validateForm() {
+            const title = document.getElementById('title').value.trim();
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            
+            if (!title) {
+                alertSystem.show('Error', 'Please enter a meeting title', 'error');
+                return false;
+            }
+            
+            if (!date) {
+                alertSystem.show('Error', 'Please select a date', 'error');
+                return false;
+            }
+            
+            if (!time) {
+                alertSystem.show('Error', 'Please select a time', 'error');
+                return false;
+            }
+            
+            // Check if selected date is in the past
+            const selectedDateTime = new Date(`${date}T${time}`);
+            if (selectedDateTime < new Date()) {
+                alertSystem.show('Warning', 'Selected time is in the past. Please choose a future time.', 'warning');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        document.getElementById('meeting-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            
+            // Show loading state
+            document.getElementById('meeting-form').style.opacity = '0.5';
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/create-meeting', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        date: date,
+                        time: time
+                        // gallery_password removed - using hardcoded 16092008
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.room_id) {
+                    // Show success message
+                    alertSystem.show('Success', 'Meeting created successfully!', 'success');
+                    
+                    // Redirect to the meeting links page
+                    setTimeout(() => {
+                        window.location.href = `/meeting-links/${data.room_id}`;
+                    }, 1000);
+                } else {
+                    alertSystem.show('Error', data.error || 'Failed to create meeting', 'error');
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alertSystem.show('Error', 'Network error. Please try again.', 'error');
+                resetForm();
+            }
+        });
+        
+        function resetForm() {
+            document.getElementById('meeting-form').style.opacity = '1';
+            document.getElementById('submit-btn').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        // Save form data to localStorage in case of accidental refresh
+        function saveFormData() {
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value
+            };
+            sessionStorage.setItem('setupFormData', JSON.stringify(formData));
+        }
+        
+        // Load saved form data
+        function loadFormData() {
+            const saved = sessionStorage.getItem('setupFormData');
+            if (saved) {
+                try {
+                    const formData = JSON.parse(saved);
+                    document.getElementById('title').value = formData.title || '';
+                    document.getElementById('description').value = formData.description || '';
+                    document.getElementById('date').value = formData.date || todayStr;
+                    document.getElementById('time').value = formData.time || `${hours}:${minutes}`;
+                    
+                    // Update char count
+                    charCount.textContent = formData.description ? formData.description.length : 0;
+                } catch (e) {
+                    console.error('Failed to load form data:', e);
+                }
+            }
+        }
+        
+        // Auto-save on input
+        document.querySelectorAll('#meeting-form input, #meeting-form textarea').forEach(input => {
+            input.addEventListener('input', saveFormData);
+        });
+        
+        // Load saved data on page load
+        loadFormData();
+        
+        // Clear saved data after successful submission
+        window.addEventListener('beforeunload', function() {
+            if (window.location.pathname.includes('/meeting-links/')) {
+                sessionStorage.removeItem('setupFormData');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoVerse - Gallery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="msapplication-TileColor" content="#0B1221">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+    <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#4DA3FF">
+
+    {% if room_id %}
+    <meta name="room-id" content="{{ room_id }}">
+    {% endif %}
+
+    <style>
+        .password-hint {
+            background: rgba(77, 163, 255, 0.1);
+            border: 1px dashed var(--glow-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .password-code {
+            font-family: monospace;
+            font-size: 28px;
+            color: var(--glow-color);
+            letter-spacing: 3px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" style="position: fixed;"></div>
+    
+    <div class="container">
+        <div id="password-screen" class="glass-panel" style="max-width: 500px; margin: 100px auto;">
+            <h2 style="color: var(--glow-color); margin-bottom: 30px; text-align: center;">
+                <i class="fas fa-lock" style="margin-right: 10px;"></i> Gallery Password Required
+            </h2>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="password" id="gallery-password" class="glass-input" 
+                       placeholder="Enter gallery password" style="margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="toggle-password">
+                    <label for="toggle-password"><i class="far fa-eye" style="margin-right: 5px;"></i> Show password</label>
+                </div>
+            </div>
+            
+            <button id="unlock-gallery" class="glow-button" style="width: 100%;">
+                <i class="fas fa-unlock-alt" style="margin-right: 8px;"></i> Unlock Gallery
+            </button>
+        </div>
+        
+        <div id="gallery-content" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="color: var(--glow-color);">
+                    <i class="fas fa-images" style="margin-right: 10px;"></i> Photo Gallery
+                </h2>
+                <button onclick="window.location.href='/meet/{{ room_id }}?host=false'" class="control-btn">
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i> Back to Meeting
+                </button>
+            </div>
+            
+            <div id="gallery-grid" class="gallery-grid">
+                <!-- Images will be loaded here -->
+            </div>
+            
+            <div id="empty-gallery" style="text-align: center; padding: 50px; display: none;">
+                <p style="font-size: 3rem; margin-bottom: 20px;">
+                    <i class="fas fa-camera-retro" style="color: var(--glow-color); opacity: 0.5;"></i>
+                </p>
+                <p style="color: rgba(255,255,255,0.8);">No photos yet. Capture some memories!</p>
+            </div>
+        </div>
+        
+        <!-- Fullscreen Preview Modal -->
+        <div id="preview-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="position: relative; max-width: 90%; max-height: 90%;">
+                <img id="preview-image" style="max-width: 100%; max-height: 90vh; border-radius: 15px;">
+                <button onclick="document.getElementById('preview-modal').style.display='none'" 
+                        style="position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 30px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script>
+        const roomId = '{{ room_id }}';
+        
+        // Remove the HARDCODED_PASSWORD and keep it as a variable to check against
+        const CORRECT_PASSWORD = '16092008';
+        
+        document.getElementById('toggle-password').addEventListener('change', function() {
+            const passwordInput = document.getElementById('gallery-password');
+            passwordInput.type = this.checked ? 'text' : 'password';
+        });
+        
+        // Don't auto-fill the password
+        document.getElementById('gallery-password').value = '';
+        
+        document.getElementById('unlock-gallery').addEventListener('click', async () => {
+            const password = document.getElementById('gallery-password').value;
+            
+            if (!password) {
+                alertSystem.show('Error', 'Please enter the gallery password', 'error');
+                return;
+            }
+            
+            if (password !== CORRECT_PASSWORD) {
+                alertSystem.show('Error', 'Incorrect password', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/gallery-images/${roomId}?password=${password}`);
+                
+                if (response.status === 401) {
+                    alertSystem.show('Error', 'Incorrect password', 'error');
+                    return;
+                }
+                
+                const images = await response.json();
+                
+                document.getElementById('password-screen').style.display = 'none';
+                document.getElementById('gallery-content').style.display = 'block';
+                
+                const galleryGrid = document.getElementById('gallery-grid');
+                const emptyGallery = document.getElementById('empty-gallery');
+                
+                if (images.length === 0) {
+                    emptyGallery.style.display = 'block';
+                    galleryGrid.style.display = 'none';
+                } else {
+                    emptyGallery.style.display = 'none';
+                    galleryGrid.style.display = 'grid';
+                    
+                    galleryGrid.innerHTML = images.map(img => `
+                        <div class="gallery-item fade-in">
+                            <img src="${img.path}" alt="Gallery image" onclick="showPreview('${img.path}')">
+                            <button class="delete-image" onclick="deleteImage(${img.id}, this)">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                alertSystem.show('Error', 'Failed to load gallery', 'error');
+            }
+        });
+        
+        window.showPreview = function(imagePath) {
+            document.getElementById('preview-image').src = imagePath;
+            document.getElementById('preview-modal').style.display = 'flex';
+        };
+        
+        window.deleteImage = async function(imageId, button) {
+            alertSystem.confirm(
+                'Delete Image',
+                'Are you sure you want to delete this image?',
+                async () => {
+                    try {
+                        const response = await fetch(`/api/delete-image/${imageId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            const galleryItem = button.closest('.gallery-item');
+                            galleryItem.style.animation = 'fadeIn 0.3s reverse';
+                            setTimeout(() => {
+                                galleryItem.remove();
+                                
+                                const galleryGrid = document.getElementById('gallery-grid');
+                                if (galleryGrid.children.length === 0) {
+                                    document.getElementById('gallery-grid').style.display = 'none';
+                                    document.getElementById('empty-gallery').style.display = 'block';
+                                }
+                            }, 300);
+                            
+                            alertSystem.show('Success', 'Image deleted successfully', 'success');
+                        }
+                    } catch (error) {
+                        alertSystem.show('Error', 'Failed to delete image', 'error');
+                    }
+                }
+            );
+        };
+        
+        document.getElementById('gallery-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('unlock-gallery').click();
+            }
+        });
+    </script>
+</body>
+</html>

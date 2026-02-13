@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoVerse - Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="msapplication-TileColor" content="#0B1221">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+    <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#4DA3FF">
+
+    {% if room_id %}
+    <meta name="room-id" content="{{ room_id }}">
+    {% endif %}
+    
+    <style>
+        /* Draggable Video Styles */
+        .draggable-video {
+            position: absolute;
+            top: 80px;
+            right: 30px;
+            width: 240px;
+            height: 180px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--glow-color);
+            box-shadow: 0 0 25px rgba(77, 163, 255, 0.5);
+            z-index: 9999;
+            cursor: move;
+            resize: both;
+            background: #0B1221;
+            transition: box-shadow 0.3s ease;
+            user-select: none;
+        }
+        
+        .draggable-video:active {
+            cursor: grabbing;
+        }
+        
+        .draggable-video video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        
+        .video-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, var(--glow-color) 50%);
+            border-radius: 0 0 12px 0;
+            z-index: 10000;
+        }
+        
+        .video-toggle-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .video-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .video-toggle-btn.video-off {
+            background: rgba(255, 80, 80, 0.3);
+            border-color: #ff5050;
+        }
+        
+        .video-toggle-btn.video-off:hover {
+            background: rgba(255, 80, 80, 0.5);
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .image-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        
+        .modal-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(77, 163, 255, 0.3);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .modal-save {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, var(--glow-color), #6EB5FF);
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            box-shadow: 0 0 20px rgba(77, 163, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .modal-save:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 0 30px rgba(77, 163, 255, 0.8);
+        }
+        
+        .modal-prev, .modal-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-prev { left: -70px; }
+        .modal-next { right: -70px; }
+        
+        .modal-prev:hover, .modal-next:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .gallery-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .gallery-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .chat-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .chat-image:hover {
+            transform: scale(1.05);
+            border-color: var(--glow-color);
+            box-shadow: 0 0 20px rgba(77, 163, 255, 0.5);
+        }
+        
+        .image-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .save-image-btn {
+            background: rgba(77, 163, 255, 0.3);
+            border: 1px solid var(--glow-color);
+            border-radius: 20px;
+            padding: 5px 12px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .save-image-btn:hover {
+            background: rgba(77, 163, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glow-color);
+            border-radius: 50px;
+            padding: 12px 24px;
+            color: white;
+            font-size: 14px;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 20px rgba(77, 163, 255, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .glass-panel {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .chat-container {
+            position: relative;
+        }
+        
+        /* Emoji picker trigger icon */
+        .emoji-trigger {
+            padding: 14px 0 14px 16px;
+            cursor: pointer;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .emoji-trigger i {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" style="position: fixed;"></div>
+    
+    <!-- Full Screen Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <div class="modal-content">
+            <span id="modalClose" class="modal-close"><i class="fas fa-times"></i></span>
+            <img id="modalImage" src="" alt="Full screen image">
+            <button id="modalSaveBtn" class="modal-save">
+                <i class="fas fa-save"></i> Save to Gallery
+            </button>
+            <span id="modalPrev" class="modal-prev"><i class="fas fa-chevron-left"></i></span>
+            <span id="modalNext" class="modal-next"><i class="fas fa-chevron-right"></i></span>
+        </div>
+    </div>
+    
+    <!-- Toast notification -->
+    <div id="toast" class="toast" style="display: none;"></div>
+    
+    <div class="container">
+        <div class="chat-container" style="position: relative; min-height: 80vh;">
+            <!-- Draggable Partner Video -->
+            <div id="draggable-video" class="draggable-video">
+                <video id="partner-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                <div class="video-label"><i class="fas fa-user" style="margin-right: 5px;"></i> Partner</div>
+                <div id="resize-handle" class="resize-handle"></div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div class="glass-panel" style="height: 80vh; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="color: var(--glow-color);">
+                        <i class="fas fa-comment-dots" style="margin-right: 10px;"></i> Chat
+                    </h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="toggleVideoBtn" class="video-toggle-btn">
+                            <i class="fas fa-video"></i> <span class="text">Hide Video</span>
+                        </button>
+                        <button id="openGalleryBtn" class="gallery-btn">
+                            <i class="fas fa-images"></i> <span class="text">Gallery</span>
+                        </button>
+                        <button onclick="window.location.href='/meet/{{ room_id }}?host=false'" class="control-btn">
+                            <i class="fas fa-sign-out-alt"></i> <span class="text">Exit Chat</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="chat-messages" class="chat-messages" style="flex: 1; overflow-y: auto;">
+                    <!-- Messages appear here -->
+                </div>
+                
+                <!-- Chat Input Container -->
+                <div class="chat-input-container" style="display: flex; align-items: center; gap: 8px; padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; flex: 1; position: relative; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; transition: all 0.3s ease;">
+                        <!-- Emoji trigger - changed from emoji to icon -->
+                        <span id="emoji-picker" class="emoji-trigger">
+                            <i class="far fa-smile"></i>
+                        </span>
+                        <input type="text" id="message-input" class="glass-input" 
+                               placeholder="Type a message..." 
+                               style="flex: 1; background: transparent; border: none; padding: 16px 8px; font-size: 18px; color: white; outline: none;">
+                        <span id="attach-image" style="padding: 14px 16px 14px 8px; cursor: pointer; font-size: 24px; color: rgba(255, 255, 255, 0.8);">
+                            <i class="fas fa-paperclip"></i>
+                        </span>
+                    </div>
+                    <button id="send-message" class="control-btn" style="width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--glow-color); border: none; box-shadow: 0 0 20px rgba(77, 163, 255, 0.5);">
+                        <i class="fas fa-paper-plane" style="font-size: 20px;"></i>
+                    </button>
+                </div>
+                
+                <!-- Emoji Picker - Keep emojis here for selection -->
+                <div id="emoji-container" style="display: none; position: absolute; bottom: 100px; right: 20px; background: var(--glass-bg); backdrop-filter: blur(10px); border-radius: 10px; padding: 10px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; z-index: 10001;">
+                    <span style="cursor: pointer; font-size: 24px;">😊</span>
+                    <span style="cursor: pointer; font-size: 24px;">😂</span>
+                    <span style="cursor: pointer; font-size: 24px;">🥰</span>
+                    <span style="cursor: pointer; font-size: 24px;">😎</span>
+                    <span style="cursor: pointer; font-size: 24px;">😢</span>
+                    <span style="cursor: pointer; font-size: 24px;">🎉</span>
+                    <span style="cursor: pointer; font-size: 24px;">❤️</span>
+                    <span style="cursor: pointer; font-size: 24px;">🔥</span>
+                    <span style="cursor: pointer; font-size: 24px;">👍</span>
+                    <span style="cursor: pointer; font-size: 24px;">👎</span>
+                    <span style="cursor: pointer; font-size: 24px;">🙏</span>
+                    <span style="cursor: pointer; font-size: 24px;">✨</span>
+                    <span style="cursor: pointer; font-size: 24px;">⭐</span>
+                    <span style="cursor: pointer; font-size: 24px;">🌈</span>
+                    <span style="cursor: pointer; font-size: 24px;">🍕</span>
+                    <span style="cursor: pointer; font-size: 24px;">🎸</span>
+                </div>
+                
+                <!-- Hidden file input -->
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script>
+        const roomId = '{{ room_id }}';
+        let lastMessageId = 0;
+        let pollInterval;
+        
+        // Gallery storage
+        let galleryImages = [];
+        let currentImageIndex = 0;
+        
+        // Video toggle state
+        let isVideoVisible = true;
+        
+        async function initPartnerVideo() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#0B1221';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = '24px Arial';
+                ctx.fillStyle = '#4DA3FF';
+                ctx.textAlign = 'center';
+                ctx.fillText('Partner Video', canvas.width/2, canvas.height/2);
+                
+                const stream = canvas.captureStream(30);
+                document.getElementById('partner-video').srcObject = stream;
+            } catch (error) {
+                console.error('Error loading partner video:', error);
+            }
+        }
+        
+        initPartnerVideo();
+        
+        // Toggle video visibility
+        const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+        const draggableVideo = document.getElementById('draggable-video');
+        
+        toggleVideoBtn.addEventListener('click', function() {
+            isVideoVisible = !isVideoVisible;
+            
+            if (isVideoVisible) {
+                draggableVideo.style.display = 'block';
+                toggleVideoBtn.innerHTML = '<i class="fas fa-video"></i> <span class="text">Hide Video</span>';
+                toggleVideoBtn.classList.remove('video-off');
+            } else {
+                draggableVideo.style.display = 'none';
+                toggleVideoBtn.innerHTML = '<i class="fas fa-video-slash"></i> <span class="text">Show Video</span>';
+                toggleVideoBtn.classList.add('video-off');
+            }
+            
+            localStorage.setItem(`videoVisible_${roomId}`, isVideoVisible);
+        });
+        
+        function loadVideoVisibility() {
+            const saved = localStorage.getItem(`videoVisible_${roomId}`);
+            if (saved !== null) {
+                isVideoVisible = saved === 'true';
+                draggableVideo.style.display = isVideoVisible ? 'block' : 'none';
+                toggleVideoBtn.innerHTML = isVideoVisible ? 
+                    '<i class="fas fa-video"></i> <span class="text">Hide Video</span>' : 
+                    '<i class="fas fa-video-slash"></i> <span class="text">Show Video</span>';
+                toggleVideoBtn.classList.toggle('video-off', !isVideoVisible);
+            }
+        }
+        
+        // Draggable Video
+        const resizeHandle = document.getElementById('resize-handle');
+        
+        let isDragging = false;
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight, startLeft, startTop;
+        
+        draggableVideo.onmousedown = function(e) {
+            if (e.target === resizeHandle || e.target.className === 'resize-handle') {
+                return;
+            }
+            
+            e.preventDefault();
+            isDragging = true;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const style = window.getComputedStyle(draggableVideo);
+            startLeft = parseInt(style.left, 10) || draggableVideo.offsetLeft;
+            startTop = parseInt(style.top, 10) || draggableVideo.offsetTop;
+            
+            draggableVideo.style.cursor = 'grabbing';
+            draggableVideo.style.transition = 'none';
+            
+            document.onmousemove = dragMove;
+            document.onmouseup = dragEnd;
+        };
+        
+        function dragMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            draggableVideo.style.left = (startLeft + dx) + 'px';
+            draggableVideo.style.top = (startTop + dy) + 'px';
+            draggableVideo.style.right = 'auto';
+            draggableVideo.style.bottom = 'auto';
+        }
+        
+        function dragEnd(e) {
+            isDragging = false;
+            isResizing = false;
+            draggableVideo.style.cursor = 'move';
+            draggableVideo.style.transition = 'box-shadow 0.3s ease';
+            
+            document.onmousemove = null;
+            document.onmouseup = null;
+            
+            savePosition();
+        }
+        
+        resizeHandle.onmousedown = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            isResizing = true;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(document.defaultView.getComputedStyle(draggableVideo).width, 10);
+            startHeight = parseInt(document.defaultView.getComputedStyle(draggableVideo).height, 10);
+            
+            document.onmousemove = resizeMove;
+            document.onmouseup = dragEnd;
+        };
+        
+        function resizeMove(e) {
+            if (!isResizing) return;
+            e.preventDefault();
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            const newWidth = Math.max(200, startWidth + dx);
+            const newHeight = Math.max(150, startHeight + dy);
+            
+            draggableVideo.style.width = newWidth + 'px';
+            draggableVideo.style.height = newHeight + 'px';
+        }
+        
+        function savePosition() {
+            const position = {
+                left: draggableVideo.style.left,
+                top: draggableVideo.style.top,
+                width: draggableVideo.style.width,
+                height: draggableVideo.style.height
+            };
+            localStorage.setItem(`videoPosition_${roomId}`, JSON.stringify(position));
+        }
+        
+        function loadPosition() {
+            const saved = localStorage.getItem(`videoPosition_${roomId}`);
+            if (saved) {
+                try {
+                    const position = JSON.parse(saved);
+                    if (position.left) draggableVideo.style.left = position.left;
+                    if (position.top) draggableVideo.style.top = position.top;
+                    if (position.width) draggableVideo.style.width = position.width;
+                    if (position.height) draggableVideo.style.height = position.height;
+                    draggableVideo.style.right = 'auto';
+                    draggableVideo.style.bottom = 'auto';
+                } catch (e) {
+                    console.error('Failed to load video position:', e);
+                }
+            }
+        }
+        
+        draggableVideo.style.left = 'auto';
+        draggableVideo.style.right = '30px';
+        draggableVideo.style.top = '80px';
+        draggableVideo.style.bottom = 'auto';
+        
+        loadPosition();
+        loadVideoVisibility();
+        
+        function showToast(message, icon = 'check-circle') {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            toast.style.display = 'flex';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+        
+        function saveImageToGallery(imageUrl, sender, timestamp) {
+            const imageData = {
+                id: Date.now() + Math.random(),
+                url: imageUrl,
+                sender: sender,
+                timestamp: timestamp || new Date().toISOString(),
+                roomId: roomId
+            };
+            
+            galleryImages.push(imageData);
+            
+            localStorage.setItem(`gallery_${roomId}`, JSON.stringify(galleryImages));
+            
+            showToast('Image saved to gallery', 'save');
+        }
+        
+        function loadGallery() {
+            const saved = localStorage.getItem(`gallery_${roomId}`);
+            if (saved) {
+                try {
+                    galleryImages = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to load gallery:', e);
+                }
+            }
+        }
+        
+        function openImageModal(imageUrl, index) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            
+            currentImageIndex = index;
+            modalImg.src = imageUrl;
+            modal.classList.add('active');
+            
+            updateModalNavigation();
+        }
+        
+        function updateModalNavigation() {
+            const prevBtn = document.getElementById('modalPrev');
+            const nextBtn = document.getElementById('modalNext');
+            
+            if (galleryImages.length <= 1) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = 'flex';
+                nextBtn.style.display = 'flex';
+            }
+        }
+        
+        function prevImage() {
+            if (galleryImages.length > 0) {
+                currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+                document.getElementById('modalImage').src = galleryImages[currentImageIndex].url;
+            }
+        }
+        
+        function nextImage() {
+            if (galleryImages.length > 0) {
+                currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+                document.getElementById('modalImage').src = galleryImages[currentImageIndex].url;
+            }
+        }
+        
+        function initModalEvents() {
+            const modal = document.getElementById('imageModal');
+            const closeBtn = document.getElementById('modalClose');
+            const saveBtn = document.getElementById('modalSaveBtn');
+            const prevBtn = document.getElementById('modalPrev');
+            const nextBtn = document.getElementById('modalNext');
+            
+            closeBtn.onclick = () => modal.classList.remove('active');
+            
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            };
+            
+            saveBtn.onclick = () => {
+                const currentImage = galleryImages[currentImageIndex];
+                if (currentImage) {
+                    saveImageToGallery(currentImage.url, currentImage.sender, currentImage.timestamp);
+                    showToast('Image saved to gallery', 'save');
+                }
+            };
+            
+            prevBtn.onclick = prevImage;
+            nextBtn.onclick = nextImage;
+            
+            document.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('active')) return;
+                
+                if (e.key === 'Escape') {
+                    modal.classList.remove('active');
+                } else if (e.key === 'ArrowLeft') {
+                    prevImage();
+                } else if (e.key === 'ArrowRight') {
+                    nextImage();
+                }
+            });
+        }
+        
+        function openGallery() {
+            localStorage.setItem(`gallery_${roomId}`, JSON.stringify(galleryImages));
+            window.location.href = `/gallery/${roomId}`;
+        }
+        
+        document.getElementById('openGalleryBtn').addEventListener('click', openGallery);
+        
+        loadGallery();
+        initModalEvents();
+        
+        async function pollMessages() {
+            try {
+                const response = await fetch(`/api/messages/${roomId}?since=${lastMessageId}`);
+                const messages = await response.json();
+                
+                if (messages.length > 0) {
+                    const container = document.getElementById('chat-messages');
+                    
+                    messages.forEach(msg => {
+                        lastMessageId = Math.max(lastMessageId, msg.id);
+                        
+                        const messageDiv = document.createElement('div');
+                        messageDiv.style.marginBottom = '15px';
+                        messageDiv.style.padding = '12px';
+                        messageDiv.style.background = 'rgba(255,255,255,0.1)';
+                        messageDiv.style.borderRadius = '10px';
+                        messageDiv.style.animation = 'fadeIn 0.3s ease';
+                        
+                        if (msg.is_image) {
+                            const imageId = `img_${msg.id}_${Date.now()}`;
+                            
+                            messageDiv.innerHTML = `
+                                <strong>${msg.sender}</strong>
+                                <div style="margin-top: 10px; position: relative;">
+                                    <img id="${imageId}" src="${msg.message}" class="chat-image" style="max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer;">
+                                </div>
+                                <div class="image-actions">
+                                    <button class="save-image-btn" data-image="${msg.message}" data-sender="${msg.sender}" data-timestamp="${msg.timestamp}">
+                                        <i class="fas fa-save" style="margin-right: 5px;"></i> Save
+                                    </button>
+                                </div>
+                                <small style="color: rgba(255,255,255,0.6);">${new Date(msg.timestamp).toLocaleTimeString()}</small>
+                            `;
+                            
+                            container.appendChild(messageDiv);
+                            
+                            setTimeout(() => {
+                                const imgElement = document.getElementById(imageId);
+                                if (imgElement) {
+                                    imgElement.onclick = function() {
+                                        const exists = galleryImages.some(img => img.url === msg.message);
+                                        if (!exists) {
+                                            saveImageToGallery(msg.message, msg.sender, msg.timestamp);
+                                        }
+                                        
+                                        const index = galleryImages.findIndex(img => img.url === msg.message);
+                                        openImageModal(msg.message, index !== -1 ? index : 0);
+                                    };
+                                }
+                                
+                                const saveBtn = messageDiv.querySelector('.save-image-btn');
+                                if (saveBtn) {
+                                    saveBtn.onclick = function(e) {
+                                        e.stopPropagation();
+                                        const imageUrl = this.dataset.image;
+                                        const sender = this.dataset.sender;
+                                        const timestamp = this.dataset.timestamp;
+                                        saveImageToGallery(imageUrl, sender, timestamp);
+                                    };
+                                }
+                            }, 100);
+                            
+                        } else {
+                            messageDiv.innerHTML = `
+                                <strong>${msg.sender}</strong>
+                                <p style="margin: 5px 0; word-break: break-word;">${msg.message}</p>
+                                <small style="color: rgba(255,255,255,0.6);">${new Date(msg.timestamp).toLocaleTimeString()}</small>
+                            `;
+                            container.appendChild(messageDiv);
+                        }
+                        
+                        container.scrollTop = container.scrollHeight;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to poll messages:', error);
+            }
+        }
+        
+        pollMessages();
+        pollInterval = setInterval(pollMessages, 2000);
+        
+        document.getElementById('send-message').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                try {
+                    await fetch(`/api/send-message/${roomId}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            sender: 'You',
+                            message: message,
+                            is_image: false
+                        })
+                    });
+                    
+                    input.value = '';
+                } catch (error) {
+                    if (typeof alertSystem !== 'undefined' && alertSystem.show) {
+                        alertSystem.show('Error', 'Failed to send message', 'error');
+                    }
+                }
+            }
+        }
+        
+        // Emoji picker - triggered by icon
+        const emojiBtn = document.getElementById('emoji-picker');
+        const emojiContainer = document.getElementById('emoji-container');
+        
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiContainer.style.display = emojiContainer.style.display === 'none' ? 'grid' : 'none';
+        });
+        
+        emojiContainer.querySelectorAll('span').forEach(emoji => {
+            emoji.addEventListener('click', () => {
+                const input = document.getElementById('message-input');
+                input.value += emoji.textContent;
+                emojiContainer.style.display = 'none';
+            });
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!emojiBtn.contains(e.target) && !emojiContainer.contains(e.target)) {
+                emojiContainer.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('attach-image').addEventListener('click', () => {
+            document.getElementById('image-upload').click();
+        });
+        
+        document.getElementById('image-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                try {
+                    const response = await fetch(`/api/upload-image/${roomId}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        await fetch(`/api/send-message/${roomId}`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                sender: 'You',
+                                message: data.image_path,
+                                is_image: true
+                            })
+                        });
+                        
+                        showToast('Image uploaded successfully', 'camera');
+                    }
+                } catch (error) {
+                    if (typeof alertSystem !== 'undefined' && alertSystem.show) {
+                        alertSystem.show('Error', 'Failed to upload image', 'error');
+                    }
+                }
+            }
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            clearInterval(pollInterval);
+            savePosition();
+            localStorage.setItem(`gallery_${roomId}`, JSON.stringify(galleryImages));
+        });
+    </script>
+</body>
+</html>

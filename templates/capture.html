@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoVerse - Photo Capture</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="msapplication-TileColor" content="#0B1221">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+    <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#4DA3FF">
+
+    {% if room_id %}
+    <meta name="room-id" content="{{ room_id }}">
+    {% endif %}
+</head>
+<body>
+    <div class="stars" style="position: fixed;"></div>
+    
+    <div class="container">
+        <div class="glass-panel" style="max-width: 900px; margin: 30px auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: var(--glow-color);">
+                    <i class="fas fa-camera" style="margin-right: 10px;"></i> Photo Capture
+                </h2>
+                <button onclick="window.location.href='/meet/{{ room_id }}?host=false'" class="control-btn">
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i> Back to Meeting
+                </button>
+            </div>
+            
+            <!-- Camera View -->
+            <div id="camera-container" style="position: relative; margin-bottom: 20px;">
+                <video id="camera-preview" autoplay playsinline 
+                       style="width: 100%; aspect-ratio: 16/9; border-radius: 15px; background: black;"></video>
+                
+                <!-- Filter Canvas -->
+                <canvas id="filter-canvas" style="display: none;"></canvas>
+                
+                <!-- Emoji Overlay Stickers (Keep emojis for stickers) -->
+                <div id="emoji-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                    <!-- Emojis will be added here -->
+                </div>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+                <button class="control-btn filter-btn" data-filter="brightness">
+                    <i class="fas fa-sun" style="margin-right: 6px;"></i> Brightness
+                </button>
+                <button class="control-btn filter-btn" data-filter="contrast">
+                    <i class="fas fa-adjust" style="margin-right: 6px;"></i> Contrast
+                </button>
+                <button class="control-btn filter-btn" data-filter="glow">
+                    <i class="fas fa-star" style="margin-right: 6px;"></i> Glow
+                </button>
+                <button class="control-btn filter-btn" data-filter="blur">
+                    <i class="fas fa-circle" style="margin-right: 6px;"></i> Blur
+                </button>
+                <button class="control-btn filter-btn" data-filter="grayscale">
+                    <i class="fas fa-tint" style="margin-right: 6px;"></i> Grayscale
+                </button>
+                <button class="control-btn filter-btn" data-filter="none">
+                    <i class="fas fa-ban" style="margin-right: 6px;"></i> No Filter
+                </button>
+            </div>
+            
+            <!-- Emoji Stickers (Keep emojis for stickers) -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">😊</span>
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">❤️</span>
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">🎉</span>
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">✨</span>
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">⭐</span>
+                <span class="control-btn emoji-sticker" style="font-size: 30px; padding: 8px 16px;">🌈</span>
+            </div>
+            
+            <!-- Camera Controls -->
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button id="toggle-camera" class="control-btn">
+                    <i class="fas fa-sync-alt" style="margin-right: 8px;"></i> Switch Camera
+                </button>
+                <button id="capture-btn" class="glow-button" style="padding: 15px 40px;">
+                    <i class="fas fa-camera" style="margin-right: 10px;"></i> Capture
+                </button>
+            </div>
+            
+            <!-- Preview Modal -->
+            <div id="preview-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;">
+                <div style="max-width: 600px; width: 90%;">
+                    <img id="captured-image" style="width: 100%; border-radius: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 20px; justify-content: center;">
+                        <button id="save-image" class="glow-button">
+                            <i class="fas fa-save" style="margin-right: 8px;"></i> Save to Gallery
+                        </button>
+                        <button id="discard-image" class="control-btn">
+                            <i class="fas fa-trash-alt" style="margin-right: 8px;"></i> Discard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/capture.js') }}"></script>
+    <script>
+        const roomId = '{{ room_id }}';
+        let currentStream = null;
+        let currentFilter = 'none';
+        let usingFrontCamera = true;
+        
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: usingFrontCamera ? 'user' : 'environment'
+                    },
+                    audio: false
+                };
+                
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('camera-preview');
+                video.srcObject = currentStream;
+            } catch (error) {
+                alertSystem.show('Error', 'Could not access camera', 'error');
+            }
+        }
+        
+        initCamera();
+        
+        // Toggle camera
+        document.getElementById('toggle-camera').addEventListener('click', () => {
+            usingFrontCamera = !usingFrontCamera;
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            initCamera();
+        });
+        
+        // Apply filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentFilter = btn.dataset.filter;
+                const video = document.getElementById('camera-preview');
+                
+                video.className = '';
+                
+                switch(currentFilter) {
+                    case 'brightness':
+                        video.style.filter = 'brightness(1.5)';
+                        break;
+                    case 'contrast':
+                        video.style.filter = 'contrast(1.5)';
+                        break;
+                    case 'glow':
+                        video.style.filter = 'brightness(1.2) contrast(1.2)';
+                        break;
+                    case 'blur':
+                        video.style.filter = 'blur(3px)';
+                        break;
+                    case 'grayscale':
+                        video.style.filter = 'grayscale(1)';
+                        break;
+                    default:
+                        video.style.filter = 'none';
+                }
+            });
+        });
+        
+        // Add emoji stickers
+        document.querySelectorAll('.emoji-sticker').forEach(emoji => {
+            emoji.addEventListener('click', () => {
+                const overlay = document.getElementById('emoji-overlay');
+                const sticker = document.createElement('div');
+                sticker.textContent = emoji.textContent;
+                sticker.style.position = 'absolute';
+                sticker.style.left = Math.random() * 80 + 10 + '%';
+                sticker.style.top = Math.random() * 80 + 10 + '%';
+                sticker.style.fontSize = '50px';
+                sticker.style.transform = 'scale(1)';
+                sticker.style.transition = 'transform 0.3s';
+                sticker.style.cursor = 'pointer';
+                sticker.style.pointerEvents = 'auto';
+                
+                let isDragging = false;
+                let startX, startY;
+                
+                sticker.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX - sticker.offsetLeft;
+                    startY = e.clientY - sticker.offsetTop;
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        sticker.style.left = (e.clientX - startX) + 'px';
+                        sticker.style.top = (e.clientY - startY) + 'px';
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+                
+                sticker.addEventListener('dblclick', () => {
+                    sticker.remove();
+                });
+                
+                overlay.appendChild(sticker);
+            });
+        });
+        
+        // Capture photo
+        document.getElementById('capture-btn').addEventListener('click', () => {
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('filter-canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            context.filter = video.style.filter;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const overlay = document.getElementById('emoji-overlay');
+            const stickers = overlay.querySelectorAll('div');
+            
+            stickers.forEach(sticker => {
+                const rect = sticker.getBoundingClientRect();
+                const videoRect = video.getBoundingClientRect();
+                
+                const x = (rect.left - videoRect.left) * (canvas.width / videoRect.width);
+                const y = (rect.top - videoRect.top) * (canvas.height / videoRect.height);
+                
+                context.font = '50px Arial';
+                context.fillText(sticker.textContent, x, y);
+            });
+            
+            const imageData = canvas.toDataURL('image/png');
+            document.getElementById('captured-image').src = imageData;
+            document.getElementById('preview-modal').style.display = 'flex';
+        });
+        
+        // Save image
+        document.getElementById('save-image').addEventListener('click', async () => {
+            const imageData = document.getElementById('captured-image').src;
+            
+            const blob = await (await fetch(imageData)).blob();
+            
+            const formData = new FormData();
+            formData.append('image', blob, 'capture.jpg');
+            
+            try {
+                const response = await fetch(`/api/upload-image/${roomId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alertSystem.show('Success', 'Photo saved to gallery!', 'success');
+                    document.getElementById('preview-modal').style.display = 'none';
+                }
+            } catch (error) {
+                alertSystem.show('Error', 'Failed to save photo', 'error');
+            }
+        });
+        
+        // Discard image
+        document.getElementById('discard-image').addEventListener('click', () => {
+            document.getElementById('preview-modal').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
