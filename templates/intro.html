@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoVerse - Connect Beyond Reality</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4DA3FF">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DuoVerse">
+    <meta name="application-name" content="DuoVerse">
+    <meta name="theme-color" content="#4DA3FF">
+    <meta name="msapplication-TileColor" content="#0B1221">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+    <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#4DA3FF">
+
+    {% if room_id %}
+    <meta name="room-id" content="{{ room_id }}">
+    {% endif %}
+    
+    <style>
+        /* Additional styles for PWA install button */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(77, 163, 255, 0.95), rgba(110, 181, 255, 0.95));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(77, 163, 255, 0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 1000;
+            max-width: 400px;
+            margin: 0 auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .install-prompt-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .install-prompt-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .install-prompt-icon img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .install-prompt-text {
+            flex: 1;
+        }
+        
+        .install-prompt-text h4 {
+            margin: 0 0 5px 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .install-prompt-text p {
+            margin: 0;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .install-prompt-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .install-prompt-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .install-prompt-btn.install {
+            background: white;
+            color: #4DA3FF;
+            border: none;
+        }
+        
+        .install-prompt-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .install-prompt-btn.install:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        
+        .install-prompt-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 5px;
+            margin-left: 10px;
+        }
+        
+        .install-prompt-close:hover {
+            opacity: 1;
+        }
+        
+        .install-button {
+            background: linear-gradient(135deg, #4DA3FF, #6EB5FF);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(77, 163, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .install-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(77, 163, 255, 0.5);
+        }
+        
+        .install-button i {
+            font-size: 1.1rem;
+        }
+        
+        .desktop-hint {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .desktop-hint i {
+            color: #4DA3FF;
+            font-size: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .install-prompt {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+            }
+            
+            .install-prompt-content {
+                gap: 10px;
+            }
+            
+            .install-prompt-icon {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .install-prompt-icon img {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .install-prompt-text h4 {
+                font-size: 0.9rem;
+            }
+            
+            .install-prompt-text p {
+                font-size: 0.8rem;
+            }
+            
+            .install-prompt-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* Platform-specific install hints */
+        .ios-hint, .android-hint, .desktop-hint {
+            display: none;
+        }
+        
+        .ios-hint.visible, .android-hint.visible, .desktop-hint.visible {
+            display: flex;
+        }
+        
+        .hint-box {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 15px 0 0 0;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        .hint-box i {
+            color: #4DA3FF;
+            margin-right: 8px;
+        }
+        
+        .hint-box span {
+            color: white;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Stars -->
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <div class="glass-panel" style="max-width: 600px; margin: 50px auto; text-align: center;">
+            <h1 class="logo">DuoVerse</h1>
+            <p style="color: rgba(255,255,255,0.9); margin-bottom: 30px; font-size: 1.2rem;">
+                Experience seamless video connections in a stunning midnight atmosphere
+            </p>
+            
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <button id="continue-btn" class="glow-button" style="min-width: 200px;">
+                    <i class="fas fa-arrow-right" style="margin-right: 8px;"></i> Continue to DuoVerse
+                </button>
+                
+                <button id="install-app" class="install-button" style="display: none;">
+                    <i class="fas fa-download"></i> Install App
+                </button>
+            </div>
+            
+            <!-- Desktop install hint -->
+            <div class="desktop-hint" id="desktopHint">
+                <i class="fas fa-info-circle"></i>
+                <span>Click the install button in your browser's address bar to install</span>
+            </div>
+            
+            <!-- iOS install hint -->
+            <div class="ios-hint hint-box" id="iosHint">
+                <i class="fab fa-apple"></i>
+                <span>Share → Add to Home Screen to install DuoVerse</span>
+            </div>
+            
+            <!-- Android install hint -->
+            <div class="android-hint hint-box" id="androidHint">
+                <i class="fab fa-android"></i>
+                <span>Tap menu (⋮) → Install app to add to home screen</span>
+            </div>
+            
+            <!-- Install prompt for mobile -->
+            <div class="install-prompt" id="installPrompt">
+                <div class="install-prompt-content">
+                    <div class="install-prompt-icon">
+                        <img src="/static/icons/icon-192x192.png" alt="DuoVerse">
+                    </div>
+                    <div class="install-prompt-text">
+                        <h4>Install DuoVerse</h4>
+                        <p>Install as app for better experience</p>
+                    </div>
+                    <div class="install-prompt-buttons">
+                        <button class="install-prompt-btn install" id="promptInstallBtn">Install</button>
+                        <button class="install-prompt-btn" id="promptLaterBtn">Later</button>
+                    </div>
+                </div>
+                <button class="install-prompt-close" id="promptCloseBtn">&times;</button>
+            </div>
+            
+            <div style="margin-top: 40px; color: rgba(255,255,255,0.7); display: flex; flex-direction: column; gap: 10px;">
+                <p><i class="fas fa-star" style="color: var(--glow-color); margin-right: 10px;"></i> Crystal clear video calls</p>
+                <p><i class="fas fa-camera" style="color: var(--glow-color); margin-right: 10px;"></i> Photo capture with filters</p>
+                <p><i class="fas fa-comment" style="color: var(--glow-color); margin-right: 10px;"></i> Real-time chat</p>
+                <p><i class="fas fa-paint-brush" style="color: var(--glow-color); margin-right: 10px;"></i> Beautiful glass-morphism design</p>
+                <p><i class="fas fa-mobile-alt" style="color: var(--glow-color); margin-right: 10px;"></i> Install as PWA for offline access</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/alert.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script>
+        // Create stars animation
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = Math.random() * 3 + 1 + 'px';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+        
+        // Continue button
+        document.getElementById('continue-btn').addEventListener('click', () => {
+            window.location.href = '/setup';
+        });
+        
+        // ========== PWA INSTALLATION LOGIC ==========
+        
+        let deferredPrompt;
+        const installButton = document.getElementById('install-app');
+        const installPrompt = document.getElementById('installPrompt');
+        const promptInstallBtn = document.getElementById('promptInstallBtn');
+        const promptLaterBtn = document.getElementById('promptLaterBtn');
+        const promptCloseBtn = document.getElementById('promptCloseBtn');
+        const iosHint = document.getElementById('iosHint');
+        const androidHint = document.getElementById('androidHint');
+        const desktopHint = document.getElementById('desktopHint');
+        
+        // Detect platform
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                             window.navigator.standalone || 
+                             document.referrer.includes('android-app://');
+        
+        // Check if already installed as PWA
+        if (isStandalone) {
+            // App is running in standalone mode (installed)
+            console.log('DuoVerse is running as installed PWA');
+            document.querySelectorAll('[class*="hint"]').forEach(el => el.style.display = 'none');
+        } else {
+            // Show platform-specific hints
+            if (isIOS) {
+                iosHint.classList.add('visible');
+                // iOS doesn't support beforeinstallprompt, show hint
+                setTimeout(() => {
+                    iosHint.style.display = 'flex';
+                }, 2000);
+            } else if (isAndroid) {
+                androidHint.classList.add('visible');
+                // Android supports beforeinstallprompt
+                setTimeout(() => {
+                    androidHint.style.display = 'flex';
+                }, 2000);
+            } else {
+                desktopHint.classList.add('visible');
+                // Desktop browsers
+                setTimeout(() => {
+                    desktopHint.style.display = 'flex';
+                }, 2000);
+            }
+        }
+        
+        // Listen for the beforeinstallprompt event (Chrome, Edge, etc.)
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            
+            // Show the install button
+            installButton.style.display = 'inline-flex';
+            
+            // Optionally show custom install prompt after a delay
+            setTimeout(() => {
+                if (!isStandalone && !localStorage.getItem('pwa-prompt-dismissed')) {
+                    installPrompt.style.display = 'block';
+                }
+            }, 3000);
+        });
+        
+        // Install button click
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) {
+                // If no deferred prompt, show platform-specific instructions
+                if (isIOS) {
+                    alert('To install DuoVerse on iOS:\n\n1. Tap the Share button (📤)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" in the top right corner');
+                } else {
+                    alert('To install DuoVerse:\n\n' + 
+                          (isAndroid ? 'Tap menu (⋮) → Install app' : 'Click the install icon in your browser\'s address bar'));
+                }
+                return;
+            }
+            
+            // Show the install prompt
+            deferredPrompt.prompt();
+            
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            
+            // We've used the prompt, and can't use it again
+            deferredPrompt = null;
+            
+            // Hide the install button and prompt
+            installButton.style.display = 'none';
+            installPrompt.style.display = 'none';
+            
+            if (outcome === 'accepted') {
+                // Track installation
+                console.log('User installed the PWA');
+                // Hide all hints
+                iosHint.style.display = 'none';
+                androidHint.style.display = 'none';
+                desktopHint.style.display = 'none';
+            }
+        });
+        
+        // Prompt install button
+        promptInstallBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            installButton.click();
+        });
+        
+        // Prompt later button
+        promptLaterBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            // Remember dismissal for this session
+            localStorage.setItem('pwa-prompt-dismissed', 'true');
+        });
+        
+        // Prompt close button
+        promptCloseBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            localStorage.setItem('pwa-prompt-dismissed', 'true');
+        });
+        
+        // Listen for successful installation
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('DuoVerse was installed successfully');
+            // Hide all install prompts and hints
+            installButton.style.display = 'none';
+            installPrompt.style.display = 'none';
+            iosHint.style.display = 'none';
+            androidHint.style.display = 'none';
+            desktopHint.style.display = 'none';
+            
+            // Show welcome message
+            if (typeof window.showAlert === 'function') {
+                window.showAlert('🎉 Thank you for installing DuoVerse!', 'success');
+            }
+        });
+        
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            console.log('App is online');
+            document.body.classList.remove('offline');
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('App is offline');
+            document.body.classList.add('offline');
+            if (typeof window.showAlert === 'function') {
+                window.showAlert('You are offline. Some features may be limited.', 'warning');
+            }
+        });
+        
+        // Check if service worker is supported
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registered with scope:', registration.scope);
+                    
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('New service worker found:', newWorker);
+                        
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New version available
+                                if (typeof window.showAlert === 'function') {
+                                    window.showAlert('New version available! Refresh to update.', 'info');
+                                }
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed:', error);
+                });
+            
+            // Check for service worker updates periodically
+            setInterval(() => {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg) {
+                        reg.update();
+                    }
+                });
+            }, 60 * 60 * 1000); // Check every hour
+        }
+        
+        // Handle display mode changes
+        window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
+            if (e.matches) {
+                console.log('App entered standalone mode');
+                // Hide all install buttons and hints
+                installButton.style.display = 'none';
+                installPrompt.style.display = 'none';
+                iosHint.style.display = 'none';
+                androidHint.style.display = 'none';
+                desktopHint.style.display = 'none';
+            }
+        });
+        
+        // Check for iOS standalone mode
+        if (window.navigator.standalone === true) {
+            console.log('App is running in iOS standalone mode');
+            installButton.style.display = 'none';
+            installPrompt.style.display = 'none';
+            iosHint.style.display = 'none';
+        }
+        
+        // Track app usage
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            navigator.serviceWorker.ready.then(reg => {
+                // Register for background sync if needed
+                if (reg.sync) {
+                    reg.sync.register('sync-data').catch(err => {
+                        console.log('Background sync registration failed:', err);
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
