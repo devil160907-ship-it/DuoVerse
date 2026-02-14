@@ -36,5 +36,5 @@ DuoVerse is a private, secure virtual meeting platform designed specifically for
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/duoverse.git
+git clone https://github.com/devil160907-ship-it/duoverse.git
 cd duoverse
